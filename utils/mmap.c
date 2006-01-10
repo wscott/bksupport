@@ -1,6 +1,5 @@
 #include "system.h"
 
-WHATSTR("@(#)%K%");
 
 #undef	mopen
 #undef	mclose

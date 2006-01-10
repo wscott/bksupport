@@ -28,6 +28,9 @@
  *
  * ================ Arbitrarily long buffer interfaces =================
  *
+ * size = data_length(data)
+ *      how many bytes have accumulated
+ *
  * s = str_append(s, str, gift)
  *	append str in the s lines array
  *	if gift is not set, then autoallocate a copy.
@@ -54,7 +57,9 @@
 #define	str_nappend(s, str, len, gift)	data_append(s, str, len, gift)
 #define	data_pullup(p, s)		_pullup(p, s, 0)
 #define	str_pullup(p, s)		_pullup(p, s, 1)
-#define	LSIZ(s)				((int)(long)s[0])
+#define	int2p(i)			((void *)(long)(i))
+#define	p2int(p)			((int)(long)(p))
+#define	LSIZ(s)				p2int(s[0])
 #define	EACH_INDEX(s, i)	for (i=1; (s) && (i < LSIZ(s)) && (s)[i]; i++)
 #define	EACH(s)				EACH_INDEX(s, i)
 #define	emptyLines(s)			(!s || !s[1])
@@ -75,8 +80,13 @@ void	reverseLines(char **space);
 void	sortLines(char **space, int (*compar)(const void *, const void *));
 int	string_sort(const void *a, const void *b);
 char	**shellSplit(const char *line);
+char	**file2Lines(char **space, char *file);
+int	lines2File(char **space, char *file);
+void	uniqLines(char **space, void(*freep)(void *ptr));
+int	sameLines(char **p, char **p2);
 
 char	**str_append(char **space, void *str, int gift);
 char	**data_append(char **space, void *str, int len, int gift);
+int	data_length(char **space);
 char	*_pullup(u32 *bytep, char **space, int null);
 #endif

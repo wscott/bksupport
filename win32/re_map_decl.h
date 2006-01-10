@@ -31,21 +31,5 @@ struct tm* nt_localtime(const time_t);
 int	nt_dup(int);
 int	nt_dup2(int, int);
 
-/* socket functions */
-int	nt_socket(int af, int type, int protocol);
-int	nt_accept(int s, struct sockaddr *addr, int *addrlen);
-int	nt_bind(int s, const struct sockaddr *addr, int addrlen);
-int	nt_connect(int s, const struct sockaddr *addr, int addrlen);
-int	nt_send(int s, const char *buf, int len, int flags);
-int	nt_recv(int s, char *buf, int len, int flags);
-int	nt_listen(int s, int backlog);
-int	nt_getpeername(int s, struct sockaddr *addr, int *addlen);
-int	nt_getsockname(int s, struct sockaddr *addr, int *addrlen);
-int	nt_setsockopt(int s, int l, int oname, const char *oval, int olen);
-int	nt_closesocket(int s);
-int	nt_select(int n, fd_set *rfds, fd_set *wfds, fd_set *efds,
-		struct timeval *t);
-int	nt_shutdown(int s, int how);
-
 #endif /* _RE_MAP_DECL_H_ */
 

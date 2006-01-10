@@ -164,216 +164,6 @@ fsync (int fd)
 
 }
 
-/*
- * Load win sock library
- */
-void
-nt_loadWinSock(void)
-{
-	WORD	version;
-	WSADATA	wsaData;
-	int	iSockOpt = SO_SYNCHRONOUS_NONALERT;
-	static	int	winsock_loaded = 0;
-
-	if (winsock_loaded) return;
-
-	version = MAKEWORD(2, 2);
-	/* make sure we get version 2.2 or higher */
-	if (WSAStartup(version, &wsaData)) {
-		fprintf(stderr, "Failed to load WinSock\n");
-		exit(1);
-	}
-	/* Enable the use of sockets as filehandles */
-	setsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
-	    (char *)&iSockOpt, sizeof(iSockOpt));
-
-	winsock_loaded = 1;
-}
-
-#define	OPEN_SOCK(x)	_open_osfhandle((x),_O_RDWR|_O_BINARY)
-#define TO_SOCK(x)	_get_osfhandle(x)
-#define SOCK_TEST(x, y)	if((x) == (y)) errno = WSAGetLastError()
-#define SOCK_TEST_ERROR(x) SOCK_TEST(x, SOCKET_ERROR)
-
-int
-nt_socket(int af, int type, int protocol)
-{
-	SOCKET	s;
-
-	nt_loadWinSock();
-	if ((s = socket(af, type, protocol)) == INVALID_SOCKET) {
-		errno = WSAGetLastError();
-	} else {
-		s = OPEN_SOCK(s);
-	}
-	return (s);
-}
-
-int
-nt_accept(int s, struct sockaddr *addr, int *addrlen)
-{
-    SOCKET	r;
-
-    SOCK_TEST((r = accept(TO_SOCK(s), addr, addrlen)), INVALID_SOCKET);
-    return (OPEN_SOCK(r));
-}
-
-int
-nt_bind(int s, const struct sockaddr *addr, int addrlen)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = bind(TO_SOCK(s), addr, addrlen));
-	return (r);
-}
-
-int
-nt_connect(int s, const struct sockaddr *addr, int addrlen)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = connect(TO_SOCK(s), addr, addrlen));
-	return (r);
-}
-
-int
-nt_getpeername(int s, struct sockaddr *addr, int *addrlen)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = getpeername(TO_SOCK(s), addr, addrlen));
-	return (r);
-}
-
-int
-nt_getsockname(int s, struct sockaddr *addr, int *addrlen)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = getsockname(TO_SOCK(s), addr, addrlen));
-	return (r);
-}
-
-int
-nt_setsockopt(int s, int level, int optname, const char *optval, int optlen)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = setsockopt(TO_SOCK(s), level, optname,
-	    optval, optlen));
-	return (r);
-}
-
-int
-nt_send(int s, const char *buf, int len, int flags)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = send(TO_SOCK(s), buf, len, flags));
-	return (r);
-}
-
-int
-nt_recv(int s, char *buf, int len, int flags)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = recv(TO_SOCK(s), buf, len, flags));
-	return (r);
-}
-
-int
-nt_listen(int s, int backlog)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = listen(TO_SOCK(s), backlog));
-	return (r);
-}
-
-int
-nt_closesocket(int s)
-{
-	int	sock = TO_SOCK(s);
-
-	close(s);
-	return (closesocket(sock));
-}
-
-int
-nt_shutdown(int s, int how)
-{
-	int	r;
-
-	SOCK_TEST_ERROR(r = shutdown(TO_SOCK(s), how));
-	return (r);
-}
-
-/*
- * Our own wrapper for winsock's select() function.  On Windows, select can
- * _only_ be used for sockets.  So we translate the filenames to socket
- * handles and then call the real select.
- *
- * XXX We don't do the reverse mapping so the sets are not modified when
- * select returns.  This can be added if it is needed.
- */
-
-static void
-fdset2sock(fd_set *fds, int **map)
-{
-	int	i;
-	int	n, o;
-	int	*p = *map;
-
-	for (i = 0; i < fds->fd_count; i++) {
-		o = fds->fd_array[i];
-		n = TO_SOCK(o);
-		*p++ = n;
-		*p++ = o;
-		fds->fd_array[i] = n;
-	}
-	*map = p;
-}
-
-static void
-sockset2fd(fd_set *fds, int *map)
-{
-	int	i, j;
-
-	for (i = 0; i < fds->fd_count; i++) {
-		for (j = 0; map[j]; j += 2) {
-			if (map[j] == fds->fd_array[i]) {
-				fds->fd_array[i] = map[j+1];
-				break;
-			}
-		}
-		assert(map[j]);
-	}
-}
-
-int
-nt_select(int n, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *t)
-{
-	int	map[2*64];
-	int	*mapp = map;
-	int	rc;
-
-	if (rfds) fdset2sock(rfds, &mapp);
-	if (wfds) fdset2sock(wfds, &mapp);
-	if (efds) fdset2sock(efds, &mapp);
-
-	assert((mapp - map) < sizeof(map)/sizeof(int));
-	*mapp = 0;
-
-	rc = select(n, rfds, wfds, efds, t);
-	
-	if (rfds) sockset2fd(rfds, map);
-	if (wfds) sockset2fd(wfds, map);
-	if (efds) sockset2fd(efds, map);
-	
-	return (rc);
-}
-
 static void
 _getWinSockHostName(char buf[], int size)
 {
@@ -608,7 +398,7 @@ mmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t off)
 	sprintf(mmap_name, "mmap%5d-%5d", getpid(), i); /* id must be unique */
 	if ((mh = CreateFileMapping(
 	    fh, NULL, flProtect, 0, len, mmap_name)) == NULL) {
-		fprintf(stderr, "mmap: can not CreateFileMapping file, "
+		fprintf(stderr, "mmap: cannot CreateFileMapping file, "
 				"error code =%lu, writeMode = %x, fd =%d\n",
 				GetLastError(), prot & PROT_WRITE, fd);
 		return (BAD_ADDR);
@@ -1039,7 +829,7 @@ _spawnvp_ex(int flag, const char *cmdname, char *const av[], int fix_quote)
 
 	expnPath((char *) cmdname, fullCmdPath);
 	if (fullCmdPath[0] == 0) {
-		fprintf(stderr, "%s: can not expand path: %s\n",
+		fprintf(stderr, "%s: cannot expand path: %s\n",
 						cmdname, getenv("PATH"));
 		free(cmdLine);
 		return (-1);
@@ -1114,7 +904,7 @@ _spawnvp_ex(int flag, const char *cmdname, char *const av[], int fix_quote)
 			*p++ = *q++;
 			if ((p - cmdLine) >= cmd_len) {
 				fprintf(stderr,
-					"spawnvp_ex: command line too long\n");
+				    "spawnvp: command line too long\n");
 				free(cmdLine);
 				return (-1);
 			}
@@ -1187,7 +977,7 @@ duph:
 	cflags = hasConsole() ? 0 : DETACHED_PROCESS;
 	if (!CreateProcess(NULL, cmdLine, 0, 0, 1, cflags, 0, 0, &si, &pi)) {
 		fprintf(stderr,
-		    "can not create process: %s errno=%lu\n",
+		    "cannot create process: %s errno=%lu\n",
 		    cmdLine, GetLastError());
 		free(cmdLine);
 		return (-1);
@@ -1197,7 +987,8 @@ duph:
 	safeCloseHandle(si.hStdOutput);
 	safeCloseHandle(si.hStdError);
 
-	if (flag != P_WAIT) goto duph;
+	/* Note: _P_WAIT == 0, it's not a bitfield. */
+	if (flag != _P_WAIT) goto duph;
 
 	/*
 	 * Wait for child to exit

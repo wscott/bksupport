@@ -51,13 +51,8 @@ fast_getcwd(char *buf, int len)
 			pwd_sb.st_ino = 0; /* clear the sb cache */
 			pwd_sb.st_dev = 0;
 			unless ((getcwd)(pwd, sizeof(pwd))) {
-				perror("fast_getcwd:");
-				fprintf(stderr,
-				    "fast_getcwd: fatal error, unable to get "
-				    "current directory. Did someone delete "
-				    "your repository while your command is "
-				    "running ?\n");
-				exit(1);
+				buf[0] = 0;
+				return (buf);
 			}
 			strcpy(buf, pwd);
 			assert(len > strlen(pwd));
@@ -178,16 +173,12 @@ fullname(char *gfile)
 		strcpy(new, gfile);
 	} else {
 		unless (nt_getcwd(pwd, sizeof(pwd))) {
-			fprintf(stderr,
-			    "nt_getcwd: fatal error %lu, unable to get "
-			    "current directory. Did someone delete "
-			    "your repository while your command is "
-			    "running ?\n", GetLastError());
-			exit(1);
+			new[0] = 0;
+			return (new);
 		}
 		/*
 		 * TODO we should store the PWD info
-		 * in the project stuct or some here
+		 * in the project struct or some here
 		 * so it will be faster on the next call
 		 */
 		concat_path(new, pwd, gfile);

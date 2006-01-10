@@ -2,62 +2,23 @@
 
 void	(*spawn_preHook)(int flags, char *av[]) = 0;
 
-/*
- * Copyright (c) 2001 Andrew Chang       All rights reserved.
- */
-
 #ifndef WIN32
 pid_t
 bk_spawnvp(int flags, char *cmdname, char *av[])
 {
-	int	status;
-	pid_t pid;
-
-	if (spawn_preHook) spawn_preHook(flags, av);
-	if (pid = fork()) {
-		if (pid == -1) return (pid);
-		unless (flags & (_P_NOWAIT|_P_DETACH)) {
-			waitpid(pid, &status, 0);
-			return (status);
-		}
-		return pid;
-	} else {
-		int	fd;
-
-		/*
-		 * See win32/uwtlib/wapi_intf.c:spawnvp_ex()
-		 * We leave nothing open on a detach, but leave
-		 * in/out/err open on a normal fork/exec.
-		 */
-		if (flags & _P_DETACH) {
-			unless (getenv("_NO_SETSID")) setsid();
-			/* close everything to match winblows */
-			for (fd = 0; fd < 100; fd++) close(fd);
-		} else {
-			/*
-			 * Emulate having everything except in/out/err
-			 * as being marked as close on exec to match winblows.
-			 */
-			for (fd = 3; fd < 100; fd++) close(fd);
-		}
-
-		execvp(cmdname, av);
-		perror(cmdname);
-		_exit(19);
-	}
-}
-
-pid_t
-spawnvp_ex(int flags, char *cmdname, char *av[])
-{
-	int	status, fd;
+	int	fd, status;
 	pid_t	pid;
+	char	*exec;
+
+	/* Tell the calling process right away if there is no such program */
+	unless (exec = whichp((char*)cmdname, 0, 1)) return (-1);
 
 	if (spawn_preHook) spawn_preHook(flags, av);
 	if (pid = fork()) {	/* parent */
+		free(exec);
 		if (pid == -1) return (pid);
 		unless (flags & (_P_DETACH|_P_NOWAIT)) {
-			waitpid(pid, &status, 0);
+			if (waitpid(pid, &status, 0) != pid) status = -1;
 			return (status);
 		}
 		return (pid);
@@ -78,14 +39,13 @@ spawnvp_ex(int flags, char *cmdname, char *av[])
 			 */
 			for (fd = 3; fd < 100; fd++) close(fd);
 		}
-
-		/* don't go looking for it if we have a full pathname */
-		if (cmdname[0] == '/') {
-			execv(cmdname, av);
-		} else {
-			execvp(cmdname, av);
-		}
-		perror(cmdname);
+		/*
+		 * This is lame if they have a lame execvp() implementation
+		 * but the installer needs exevp, not execv.  The installer's
+		 * whichp() does nothing.
+		 */
+		execvp(exec, av);
+		perror(exec);
 		_exit(19);
 	}
 }
@@ -95,23 +55,22 @@ spawnvp_ex(int flags, char *cmdname, char *av[])
 pid_t
 bk_spawnvp(int flags, char *cmdname, char *av[])
 {
-	if (spawn_preHook) spawn_preHook(flags, av);
-	return (_spawnvp(flags, cmdname, av));
-}
+	pid_t	pid;
+	char	*exec;
 
-pid_t
-spawnvp_ex(int flags, char *cmdname, char *av[])
-{
+	/* Tell the calling process right away if there is no such program */
+	unless (exec = whichp((char*)cmdname, 0, 1)) return (-1);
+
 	if (spawn_preHook) spawn_preHook(flags, av);
 	/*
 	 * We use our own version of spawn in uwtlib
 	 * because the NT spawn() does not work well with tcl
 	 */
-	return _spawnvp_ex(flags, cmdname, av, 1);
+	pid = _spawnvp_ex(flags, exec, av, 1);
+	free(exec);
+	return (pid);
 }
 #endif /* WIN32 */
-
-
 
 /*
  * Spawn a child with a write pipe
@@ -161,7 +120,7 @@ spawnvp_wPipe(char *av[], int *pfd, int pipe_size)
 	make_fd_uninheritable(p[1]);
 
 	/* Now go do the real work... */
-	pid = spawnvp_ex(_P_NOWAIT, av[0], av);
+	pid = spawnvp(_P_NOWAIT, av[0], av);
 	if (pid == -1) return -1;
 
 	/*
@@ -207,7 +166,7 @@ spawnvp_rPipe(char *av[], int *pfd, int pipe_size)
 	/*
 	 * Now go do the real work...
 	 */
-	pid = spawnvp_ex(_P_NOWAIT, av[0], av);
+	pid = spawnvp(_P_NOWAIT, av[0], av);
 	if (pid == -1) return -1;
 
 	/*
@@ -257,7 +216,7 @@ spawnvp_rwPipe(char *av[], int *rfd, int *wfd, int pipe_size)
 	/*
 	 * Now go do the real work...
 	 */
-	pid = spawnvp_ex(_P_NOWAIT, av[0], av);
+	pid = spawnvp(_P_NOWAIT, av[0], av);
 	if (pid == -1) return (-1);
 
 	/*

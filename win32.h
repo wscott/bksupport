@@ -29,6 +29,7 @@
 #include "win32/utsname.h"
 #include "win32/re_map_decl.h"
 #include "win32/re_map.h"
+#include "win32/w32sock.h"
 
 /*
  * We need the GetLongPathName function.  We use the NewAPIs.h header
@@ -50,8 +51,8 @@
 
 #define	PATH_DELIM	';'
 #define	EDITOR		"vim"
-#define	DEV_NULL	"nul"		/* do not use this for read operation */
-#define NULL_FILE	getNull()
+#define	DEVNULL_WR	"nul"		/* do not use this for read operation */
+#define DEVNULL_RD	getNull()
 #define	DEV_TTY		"con"
 #define ROOT_USER	"Administrator"
 #define	TMP_PATH	nt_tmpdir()

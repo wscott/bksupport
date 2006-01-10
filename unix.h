@@ -28,8 +28,8 @@
  */
 #define	PATH_DELIM	':'
 #define EDITOR		"vi"
-#define	DEV_NULL	"/dev/null" /* for write */
-#define	NULL_FILE	"/dev/null" /* for read */
+#define	DEVNULL_WR	"/dev/null" /* for write */
+#define	DEVNULL_RD	"/dev/null" /* for read */
 #define DEV_TTY		"/dev/tty"
 #define	ROOT_USER	"root"
 #define	TMP_PATH	"/tmp"
@@ -49,7 +49,7 @@
 #define	fullname	full_name	/* Darwin libc collision */
 
 /* These functions are a "no-op" on unix */
-#define localName2bkName(x, y)
+#define localName2bkName(x, y)		(void)access(x, 0)
 #define	make_fd_uninheritable(fd)  fcntl(fd, F_SETFD, 1)
 #define	mkpipe(p, size)	pipe(p)
 #define	setmode(a, b)

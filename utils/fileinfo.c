@@ -4,6 +4,15 @@
  * Copyright (c) 2001 Andrew Chang       All rights reserved.
  */
 
+time_t
+mtime(char *s)
+{
+	struct	stat sbuf;
+	
+	if (lstat(s, &sbuf) != 0) return (0);
+	return (sbuf.st_mtime);
+}
+
 int
 exists(char *s)
 {

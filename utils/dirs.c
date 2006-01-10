@@ -18,6 +18,10 @@ private	char	**_getdir(char *dir, struct stat *sb1);
  * If func() returns -1, then if that file is a directory it will be
  * pruned from the search path.  If func() returns a values > 0, then
  * the search will be truncated and walkdir() will return that value.
+ * If func() returns -2, then the current directory and subdirectories
+ * will be removed for the list to process.  All remaining files in
+ * the current directory will be discarded and no subdirectories will
+ * be entered.  The walk continues as normal after that.
  *
  * The files/directories are walked in an unspecified order
  *
@@ -60,9 +64,12 @@ extsort(const void *a, const void *b)
 	char	*r = *(char **)b;
 	int	lcnt, rcnt;
 
+	/* add up goodness */
 	lcnt = !strchr(l, '.') + streq(l, "SCCS");
 	rcnt = !strchr(r, '.') + streq(r, "SCCS");
-	return (rcnt - lcnt);
+
+	if (rcnt != lcnt) return (rcnt - lcnt);
+	return (strcmp(l, r));
 }
 
 
@@ -146,6 +153,7 @@ _walkdir(char *dir, struct stat *sbufp, walkfn fn, void *data)
 		free(dl->dir);
 	}
 	freeLines(dirlist, free);
+	if (ret == -2) ret = 0;	/* prunedir is not an error */
 	return (ret);
 }
 
@@ -242,6 +250,7 @@ _getdir(char *dir, struct stat *sb1)
 		}
 	} while (_findnext(dh, &found_file) == 0);
 	_findclose(dh);
+	sortLines(lines, 0);
 	unless (lines) lines = allocLines(2);
 	return (lines);
 }

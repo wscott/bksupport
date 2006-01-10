@@ -1,6 +1,5 @@
 /* Copyright (c) 2001 L.W.McVoy */
 #include "system.h"
-WHATSTR("@(#)%K%");
 
 #ifdef	WIN32
 int	sigs[1] = { SIGINT };
@@ -48,7 +47,7 @@ sig_catch(handler new)
 }
 
 void
-sig_restore()
+sig_restore(void)
 {
 	int	i;
 
@@ -80,7 +79,7 @@ sig(int what, int sig)
 
 /* Ignore all the signals we might get */
 int
-sig_ignore()
+sig_ignore(void)
 {
 	int	i;
 
@@ -93,7 +92,7 @@ sig_ignore()
 
 /* Let them interrupt us again. */
 void
-sig_default()
+sig_default(void)
 {
 	int	i;
 

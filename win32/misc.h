@@ -26,8 +26,6 @@ extern char *getlogin(void);
 
 const char *nt_tmpdir(void);
 extern int  nt_is_full_path_name(char *);
-extern FILE *nt_fastPopen(const char *, const char *);
-extern int nt_fastPclose(FILE *f);
 extern int ftruncate(int, size_t);
 extern int getdomainname(char *buf, size_t len);
 extern pid_t _spawnvp_ex(int flag, const char *cmdname, char *const av[], int fix_quote);

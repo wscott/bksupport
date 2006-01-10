@@ -156,16 +156,17 @@ int	smartMkdir(char *pathname, mode_t mode);
 
 /* spawn.c */
 #ifndef WIN32
-#define	_P_WAIT		0 	/* for spawnvp_ex() */
-#define	_P_NOWAIT 	1	/* for spawnvp_ex() */
-#define	_P_DETACH 	2	/* for spawnvp* */
+#define	_P_WAIT		0 	/* for spawnvp() */
+#define	_P_NOWAIT 	1	/* for spawnvp() */
+#define	_P_DETACH 	2	/* for spawnvp() */
 #define	P_WAIT		_P_WAIT
 #define	P_NOWAIT 	_P_NOWAIT
 #define	P_DETACH 	_P_DETACH
 #endif
 
-extern	void	(*spawn_preHook)(int flags, char *av[]);
 #define	spawnvp bk_spawnvp
+
+void	(*spawn_preHook)(int flags, char *av[]);
 pid_t	bk_spawnvp(int flags, char *cmdname, char *av[]);
 pid_t	spawnvp_ex(int flags, char *cmdname, char *av[]);
 pid_t	spawnvp_wPipe(char *ab[], int *wfd, int pipe_size);
@@ -180,6 +181,7 @@ pid_t	spawnvp_rwPipe(char *ab[], int *rfd, int *wfd, int pipe_size);
 
 int	safe_system(char *cmd);
 FILE *	safe_popen(char *cmd, char *type);
+FILE *	popenvp(char *av[], char *type);
 int	safe_pclose(FILE *f);
 
 /* tty.c */

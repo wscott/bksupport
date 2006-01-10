@@ -19,7 +19,6 @@
  *	d|	optionial arg no space	-dARG or -d
  */
 #include "system.h"
-WHATSTR("%Z%%K%");
 
 int	optopt;		/* option that is in error, if we return an error */
 int	optind;		/* next arg in argv we process */

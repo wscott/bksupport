@@ -25,7 +25,7 @@ allocLines(int n)
 	assert(n > 1);
 	space = calloc(n, sizeof(char *));
 	assert(space);
-	space[0] = (char *)n;
+	space[0] = int2p(n);
 
 	/*
 	 * We might be reusing an old lines buffer, so we must stomp
@@ -123,6 +123,36 @@ sortLines(char **space, int (*compar)(const void *, const void *))
 }
 
 void
+uniqLines(char **space, void(*freep)(void *ptr))
+{
+	int	i;
+
+	unless (space) return;
+	sortLines(space, 0);
+	EACH(space) {
+		if (i == 1) continue;
+		while (space[i] && streq(space[i-1], space[i])) {
+			removeLineN(space, i, freep);
+		}
+	}
+}
+
+/*
+ * Return true if they are the same.
+ * It's up to you to sort them first if you want them sorted.
+ */
+int
+sameLines(char **p, char **p2)
+{
+	int	i;
+
+	unless (p && p2) return (0);
+	unless (nLines(p) == nLines(p2)) return (0);
+	EACH(p) unless (streq(p[i], p2[i])) return (0);
+	return (1);
+}
+
+void
 freeLines(char **space, void(*freep)(void *ptr))
 {
 	int	i;
@@ -146,10 +176,11 @@ removeLine(char **space, char *s, void(*freep)(void *ptr))
 		EACH(space) {
 			if (streq(space[i], s)) {
 				if (freep) freep(space[i]);
+				space[i] = 0;
 				while ((++i< (int)(long)space[0]) && space[i]) {
 					space[i-1] = space[i];
-					space[i] = 0;
 				}
+				space[i-1] = 0;
 				n++;
 				found = 1;
 				addLine_lastp = LINES_INVALID;
@@ -168,11 +199,10 @@ removeLineN(char **space, int rm, void(*freep)(void *ptr))
 	assert(rm < (int)(long)space[0]);
 	assert(rm > 0);
 	if (freep) freep(space[rm]);
-	space[rm] = 0;
 	for (i = rm; (++i < (int)(long)space[0]) && space[i]; ) {
 		space[i-1] = space[i];
-		space[i] = 0;
 	}
+	space[i-1] = 0;
 	addLine_lastp = LINES_INVALID;
 }
 
@@ -194,6 +224,46 @@ popLine(char **space)
 	data = space[i];
 	space[i] = 0;
 	return (data);
+}
+
+/*
+ * Fill a lines array from a file.
+ * Each line is chomp()ed.
+ * XXX - does not handle long lines.
+ */
+char	**
+file2Lines(char **space, char *file)
+{
+	FILE	*f;
+	char	*p;
+	char	buf[MAXLINE];
+
+	unless (file && (f = fopen(file, "r"))) return (space);
+	while (fnext(buf, f)) {
+		p = strchr(buf, '\n');
+		assert(p);
+		while ((*p == '\n') || (*p == '\r')) *p-- = 0;
+		space = addLine(space, strdup(buf));
+	}
+	fclose(f);
+	return (space);
+}
+
+/*
+ * Fill a file from a lines array.
+ */
+int
+lines2File(char **space, char *file)
+{
+	FILE	*f;
+	int	i;
+
+	unless (file && (f = fopen(file, "w"))) return (-1);
+	EACH(space) {
+		fprintf(f, "%s\n", space[i]);
+	}
+	if (fclose(f)) return (-1);
+	return (0);
 }
 
 /*
@@ -529,6 +599,16 @@ data_append(char **space, void *str, int len, int gift)
 	s->len[s->len[1]] += len;
 	assert(s);
 	return (space);
+}
+
+int
+data_length(char **space)
+{
+	dinfo	*s;
+
+	unless (space) return (0);
+	s = (dinfo*)space[1];
+	return (s->bytes);
 }
 
 char	*
