@@ -20,9 +20,6 @@
 #define	private		static
 #define	max(a,b)	((a)>(b)?(a):(b))
 #define	min(a,b)	((a)<(b)?(a):(b))
-#define	bcopy(s,d,l)	memmove(d,s,l)
-#define	bcmp(a,b,l)	memcmp(a,b,l)
-#define	bzero(s,l)	memset(s,0,l)
 #undef creat
 #define creat(p,m)	open(p,O_CREAT|O_WRONLY|O_TRUNC,m)
 #define	streq(a,b)	(!strcmp((a),(b)))
@@ -78,5 +75,7 @@ typedef	signed long long	i64;
 #	define	WHATSTR(X)	static const char what[] = X
 #endif
 #define	HERE()	fprintf(stderr, "%s:%d\n", __FILE__, __LINE__)
+
+#define	FREE(x)	do { if (x) { free(x); (x) = 0; } } while (0)
 
 #endif

@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-#include "system.h"
+#include "hash.h"
+#include "lines/lines.h"
+#include "utils/base64.h"
 
 /*
  * Routines to save and restore a hash to and from a file. The format
@@ -25,11 +27,6 @@ private	int binaryField(u8 *data, int len);
 private	int goodkey(u8 *key, int len);
 private	void writeField(FILE *f, char *key, u8 *data, int len);
 
-/* These are from tomcrypt... */
-extern int base64_decode(const unsigned char *in,  unsigned long inlen,
-    unsigned char *out, unsigned long *outlen);
-extern int base64_encode(const unsigned char *in,  unsigned long inlen,
-    unsigned char *out, unsigned long *outlen);
 
 /*
  * write the hash files to a file named by path.
@@ -41,7 +38,7 @@ hash_toFile(hash *h, char *path)
 	FILE	*f;
 	int	rc = -1;
 
-	if (f = fopen(path, "w")) {
+	if ((f = fopen(path, "w"))) {
 		rc = hash_toStream(h, f);
 		fclose(f);
 	}
@@ -82,7 +79,7 @@ hash_toStream(hash *h, FILE *f)
 	}
 	sortLines(fieldlist, 0);
 	EACH(fieldlist) {
-		data = hash_fetchStr(h, fieldlist[i]);
+		data = (u8 *)hash_fetchStr(h, fieldlist[i]);
 		assert(data);
 		writeField(f, fieldlist[i], data, h->vlen);
 	}
@@ -101,7 +98,7 @@ hash_fromFile(hash *h, char *path)
 {
 	FILE	*f;
 
-	if (f = fopen(path, "r")) {
+	if ((f = fopen(path, "r"))) {
 		h = hash_fromStream(h, f);
 		fclose(f);
 	}
@@ -118,14 +115,16 @@ hash_fromFile(hash *h, char *path)
 hash *
 hash_fromStream(hash *h, FILE *f)
 {
-	char	*line;
 	hashpl	state = {0};
+	char	*buf = 0;
+	size_t	bufsz = 0;
 
 	assert(f);
-	while (line = fgetline(f)) {
+	while (getline(&buf, &bufsz, f) > 0) {
 		unless (h) h = hash_new(HASH_MEMHASH);
-		if (hash_parseLine(line, h, &state) == 1) break;
+		if (hash_parseLine(buf, h, &state) == 1) break;
 	}
+	free(buf);
 	if (h) hash_parseLine(0, h, &state);
 	return (h);
 }
@@ -147,20 +146,22 @@ hash_fromStream(hash *h, FILE *f)
 int
 hash_parseLine(char *line, hash *h, hashpl *s)
 {
-	unless (s->val) s->val = fmem();
+	unless (s->val) s->val = open_memstream(&s->valbuf, &s->valsz);
 	if (!line || ((line[0] == '@') && (line[1] != '@'))) {
 		char	*key = s->key;
 		u8	*data;
-		size_t	len;
+		int	len;
 
-		data = fmem_peek(s->val, &len);
+		fflush(s->val);
+		data = (u8*)s->valbuf;
+		len = strlen(s->valbuf);
 		if (key || len) {
 			unless (key) key = "";
 			if (!s->base64 && len && (data[len-1] == '\n')) --len;
 			data[len++] = 0;	/* always add trailing null */
 			/* overwrite existing */
 			if (h) hash_store(h, key, strlen(key)+1, data, len);
-			ftrunc(s->val, 0);
+			fseek(s->val, 0L, SEEK_SET);
 			FREE(s->key);
 		}
 		unless (line) {    /* at EOF */
@@ -313,6 +314,7 @@ writeField(FILE *f, char *key, u8 *data, int len)
 	fputc('\n', f);
 }
 
+#if 0
 extern	int	hashfile_test_main(int ac, char **av);
 
 int
@@ -384,3 +386,4 @@ next:			unless (feof(f)) printf("---\n");
 	if (h) hash_free(h);
 	return (0);
 }
+#endif

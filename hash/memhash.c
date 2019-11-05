@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "system.h"
+#include "hash.h"
 #include "memhash.h"
 
 typedef struct node node;
@@ -23,7 +23,7 @@ struct memhash {
 	hash	hdr;		/* std header for hash_* wrappers */
 	int	nodes;		/* number of elements in hash */
 	node	**arr;		/* array indexed by hash */
-	uint32	mask;		/* size of array */
+	u32	mask;		/* size of array */
 
 	/* for nextkey .. */
 	int	lastidx;
@@ -112,7 +112,7 @@ memhash_free(hash *_h)
 private inline node **
 find_nodep(memhash *h, void *kptr, int klen)
 {
-	uint32	hash = HASH(kptr, klen);
+	u32	hash = HASH(kptr, klen);
 	node	*n, **nn;
 
 	nn = &h->arr[hash & h->mask];
@@ -305,7 +305,7 @@ memhash_split(memhash *h)
 	node	*t;
 	node	**p;
 	node	**newarr;
-	uint32	hash;
+	u32	hash;
 
 	newarr = calloc(newmask+1, sizeof(*newarr));
 	for (i = 0; i <= h->mask; i++) {

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include "system.h"
+#include "hash.h"
+#include "utils/webencode.h"
 
 /*
  * Routines to save and restore a hash to and from a string.  To be
@@ -27,14 +28,16 @@ hash_toStr(hash *h)
 {
 	char	**data = 0;
 	char	*ret;
-	FILE	*f = fmem();
+	char	*buf = 0;
+	FILE	*f = fmemopen(&buf, 256, "w+");
 
 	EACH_HASH(h) {
 		webencode(f, h->kptr, h->klen);
 		putc('=', f);
 		webencode(f, h->vptr, h->vlen);
-		data = addLine(data, fmem_dup(f, 0));
-		ftrunc(f, 0);
+		fflush(f);
+		data = addLine(data, strdup(buf));
+		fseek(f, 0L, SEEK_SET);
 	}
 	fclose(f);
 	sortLines(data, 0);	/* sort by keys */
@@ -48,7 +51,7 @@ hash_fromStr(hash *h, char *str)
 {
 	char	*p = str;
 	char	*k = 0, *v = 0;
-	u32	klen, vlen;
+	int	klen, vlen;
 
 	while (*p) {
 		unless (p = webdecode(p, &k, &klen)) {

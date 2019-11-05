@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-#include "system.h"
+#include "hash.h"
 #include "u32hash.h"
+#include "lines/data.h"
 
 typedef	struct {
 	u32	key;

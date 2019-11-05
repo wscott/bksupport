@@ -14,28 +14,12 @@
  * limitations under the License.
  */
 
-#include "system.h"
-#include "wrapmdbm.h"
+#include "hash.h"
 #include "memhash.h"
 #include "u32hash.h"
 
 struct hashops	ops[] = {
-	{	"mdbm",		/* type 0 */
-		wrapmdbm_new,
-		wrapmdbm_open,
-		wrapmdbm_close,
-		wrapmdbm_close,	/* free */
-		wrapmdbm_fetch,
-		wrapmdbm_store,
-		wrapmdbm_insert,
-		wrapmdbm_delete,
-		wrapmdbm_first,
-		wrapmdbm_next,
-		0,		/* last */
-		0,		/* prev */
-		0,		/* numelems */
-	},
-	{	"memhash",	/* type 1 */
+	{	"memhash",	/* type 0 */
 		memhash_new,
 		0,		/* open */
 		0,		/* close */
@@ -50,7 +34,7 @@ struct hashops	ops[] = {
 		0,		/* prev */
 		memhash_count,
 	},
-	{	"u32",		/* type 3 */
+	{	"u32",		/* type 1 */
 		u32hash_new,
 		0,		/* open */
 		0,		/* close */
@@ -65,6 +49,23 @@ struct hashops	ops[] = {
 		0,		/* prev */
 		u32hash_count,
 	},
+#ifdef WRAPMEM
+	{	"mdbm",		/* type 2 */
+		wrapmdbm_new,
+		wrapmdbm_open,
+		wrapmdbm_close,
+		wrapmdbm_close,	/* free */
+		wrapmdbm_fetch,
+		wrapmdbm_store,
+		wrapmdbm_insert,
+		wrapmdbm_delete,
+		wrapmdbm_first,
+		wrapmdbm_next,
+		0,		/* last */
+		0,		/* prev */
+		0,		/* numelems */
+	},
+#endif
 };
 
 /*

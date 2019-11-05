@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-#include "system.h"
+#include "webencode.h"
+
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
  * Return true if this character should be encoded according to RFC1738
@@ -118,4 +122,3 @@ err:
 	fprintf(stderr, "ERROR: can't decode %s\n", p);
 	return (0);
 }
-
