@@ -25,7 +25,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "system.h"
+#include "crc32c.h"
 
 #if defined(__x86_64) && (GCC_VERSION > 40300)
 #define	X86_CRC

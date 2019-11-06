@@ -9,4 +9,6 @@ cc_library(name = "bksupport",
            deps = ["//:bkstyle",
                    "//hash:hash",
                    "//lines:lines",
-                   "//utils:utils"])
+                   "//utils:utils"],
+           visibility = ["//visibility:public"],
+)

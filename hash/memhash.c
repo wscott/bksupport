@@ -16,6 +16,7 @@
 
 #include "hash.h"
 #include "memhash.h"
+#include "utils/crc32c.h"
 
 typedef struct node node;
 typedef	struct memhash memhash;
@@ -209,7 +210,7 @@ memhash_store(hash *_h, void *kptr, int klen, void *dptr, int dlen)
 	void	*ret = 0;
 
 	nn = find_nodep(h, kptr, klen);
-	if (n = *nn) {
+	if ((n = *nn) != 0) {
 		if (dlen > n->dlen) {
 			*nn = n->next;
 			--h->nodes;
@@ -241,7 +242,7 @@ memhash_delete(hash *_h, void *kptr, int klen)
 	node	*n, **nn;
 
 	nn = find_nodep(h, kptr, klen);
-	if (n = *nn) {
+	if ((n = *nn) != 0) {
 		*nn = n->next;
 		free(n);
 		assert(h->nodes > 0);
@@ -280,7 +281,7 @@ memhash_next(hash *_h)
 			n = h->arr[i];
 		}
 	}
-	if (h->lastnode = n) {
+	if ((h->lastnode = n) != 0) {
 		h->hdr.kptr = n->key;
 		h->hdr.klen = n->klen;
 		h->hdr.vptr = &n->key[DOFF(n->klen, n->dlen)];

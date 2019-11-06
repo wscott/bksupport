@@ -7,3 +7,7 @@ cc_library(name = "hash",
            deps = ["//:bkstyle", "//lines:lines", "//utils:utils"],
            visibility = ["//visibility:public"]
            )
+
+cc_binary(name = "hash_test",
+           srcs = ["hash_test.c"],
+           deps = ["//:bksupport"])
