@@ -46,12 +46,6 @@
 #endif
 
 #include "style.h"
-#include "lines.h"
-#include "pq.h"
-#include "mmap.h"
-#include "hash.h"
-#include "mdbm/mdbm.h"
-#include "zlib/zlib.h"
 
 #define	FREE(x)	do { if (x) { free(x); (x) = 0; } } while (0)
 #ifndef	isascii
@@ -126,18 +120,6 @@ void	concat_path(char *buf, char *first, char *second);
 /* crc32c.c */
 u32	crc32c(u32 crc, const void *chunk, size_t len);
 
-/* data.c */
-typedef struct {
-	char	*buf;		/* user's data */
-	u32	len;		/* length of user's data */
-	u32	size;		/* malloc'ed size */
-} DATA;
-
-void	data_setSize(DATA *d, u32 size);
-void	data_resize(DATA *d, u32 newlen);
-void	data_append(DATA *d, void *data, u32 len);
-#define	data_appendStr(f, s)       data_append(f, (s), strlen(s))
-
 /* die.c */
 #define	die(fmt, args...)  diefn(1, __FILE__, __LINE__, fmt, ##args)
 #define	warn(fmt, args...)  diefn(0, __FILE__, __LINE__, fmt, ##args)
@@ -150,18 +132,6 @@ void	diefn(int seppuku, char *file, int line, char *fmt, ...)
 /* dirname.c */
 char	*dirname(char *path);
 char	*dirname_alloc(char *path);
-
-/* dirs.c */
-char	**getdir(char *dir);
-typedef	int	filefn(char *file, char type, void *data);
-typedef	int	dirfn(char *file, void *data);
-
-typedef struct {
-	filefn	*file;	/* called on each inode in a dir (file, link, dir) */
-	dirfn	*dir;	/* called after all inodes in a dir are done */
-	dirfn	*tail;	/* called after all inodes in the subtree are done */
-} walkfns;
-int walkdir(char *dir, walkfns fn, void *token);
 
 /* efopen.c */
 FILE	*efopen(char *env);
@@ -229,30 +199,6 @@ char    *fullLink(char *path, char *out, int followLink);
 /* getnull.c */
 char	*getNull(void);
 
-/* getopt.c */
-#define getopt	mygetopt
-#define optind	myoptind
-#define optarg	myoptarg
-#define	opterr	myopterr
-#define	optopt	myoptopt
-
-extern	int	optind;
-extern	int	opterr;
-extern	int	optopt;
-extern	char	*optarg;
-
-typedef struct {
-	char	*name;		/* name w args ex: "url:" */
-	int	ret;		/* return value from getopt */
-} longopt;
-
-#define	GETOPT_ERR	256	/* bad option */
-#define	GETOPT_NOARG	257	/* missing argument */
-int	getopt(int ac, char **av, char *opts, longopt *lopts);
-void	getoptReset(void);
-void	getoptConsumed(int n);
-
-
 /* glob.c */
 char	*is_glob(char *glob);
 char*	match_globs(char *string, char **globs, int ignorecase);
@@ -315,24 +261,6 @@ int	smartUnlink(char *name);
 int	smartRename(char *old, char *new);
 int	smartMkdir(char *dir, mode_t mode);
 
-/* spawn.c */
-#ifndef WIN32
-#define	_P_WAIT		0 	/* for spawnvp() */
-#define	_P_NOWAIT 	1	/* for spawnvp() */
-#define	_P_DETACH 	2	/* for spawnvp() */
-#define	P_WAIT		_P_WAIT
-#define	P_NOWAIT 	_P_NOWAIT
-#define	P_DETACH 	_P_DETACH
-#endif
-
-#define	spawnvp bk_spawnvp
-
-extern void	(*spawn_preHook)(int flags, char *av[]);
-pid_t	bk_spawnvp(int flags, char *cmdname, char *av[]);
-pid_t	spawnvp_ex(int flags, char *cmdname, char *av[]);
-pid_t	spawnvpio(int *fd0, int *fd1, int *fd2, char *av[]);
-int	spawn_filterPipeline(char **cmds);
-
 /* stackdump.c */
 char	*stackdump(void);
 
@@ -372,100 +300,10 @@ int	safe_fclose(FILE *f);
 char	*backtick(char *cmd, int *status);
 char	*shell(void);
 
-/* tcp/tcp.c */
-int	tcp_server(char *addr, int port, int quiet);
-int	tcp_connect(char *host, int port);
-int	tcp_accept(int sock);
-void	tcp_ndelay(int sock, int val);
-void	tcp_reuse(int sock);
-void	tcp_keepalive(int sock);
-int	udp_server(char *addr, int port, int quiet);
-int	udp_connect(char *host, int port);
-int	readable(int fd, int sec);
-int	sockport(int s);
-char	*sockaddr(int);
-int	isLocalHost(char *h);
-char	*hostaddr(char *);
-int	tcp_pair(int fds[2]);
-char	*peeraddr(int s);
-int	issock(int);
-
 /* testcode.c */
 void	libc_tests(void);
 
 /* trace.c */
-extern	int bk_trace;
-int	indent(void);
-void	trace_init(char *prog);
-void	trace_msg(char *file, int line,
-    const char *function, u32 bits, char *fmt, ...)
-#ifdef __GNUC__
-     __attribute__((format (__printf__, 5, 6)))
-#endif
-	;
-int	trace_this(char *file, int line, const char *function, u32 bits);
-void	trace_free(void);
-
-/*
- * the env var gets split and turned into these.  We check this selector
- * first, it's much faster than a bunch of glob matches.
- *
- * T_TMP traces shouldn't be checked in, they are there as a way for you
- * to pepper the code with those and find your problem; then clean them up.
- */
-#define	TR_DEFAULT	0x00000001	// "default", on by default
-#define	TR_FS_LAYER	0x00000002	// "fs", on if selected
-#define	TR_PERF		0x00000004	// "perf", on if selected
-#define	TR_IF		0x00000008	// "if", on if selected
-#define	TR_DEBUG	0x00000010	// "debug", on if selected
-#define	TR_LOCK		0x00000020	// "lock", on if selected
-#define	TR_NESTED	0x00000040	// "nested", on if selected
-#define	TR_TMP		0x00000080	// "tmp", on if selected
-#define	TR_O1		0x00000100	// "o1" (paging), on if selected
-#define	TR_PROJ		0x00000200	// "proj", on if selected
-#define	TR_SHIP		0x00000400	// "ship", ships to customers
-#define	TR_CMD		0x00000800	// log command start/stop
-#define	TR_SCCS		0x00001000	// most of the sccs_* interfaces
-#define	TR_INIT		0x00002000	// show sccs_init's
-/* Hey!  You!  Adding a flag!  Make it match in trace_init() */
-#define	TR_ALL		0xffffffff	// "all", easy way to select everything
-
-#ifdef	USE_TRACE
-#define	TRACE(args...)	\
-	do { if (unlikely(bk_trace))					    \
-	    trace_msg(__FILE__, __LINE__, __FUNCTION__, TR_DEFAULT, ##args);\
-	} while (0)
-#define	T_NUM(args...)	\
-	do { if (unlikely(bk_trace))				     \
-		trace_msg(__FILE__, __LINE__, __FUNCTION__, ##args); \
-	} while (0)
-#define	IF_TRACE							\
-	if (unlikely(bk_trace) && trace_this(__FILE__, __LINE__, __FUNCTION__, TR_IF))
-#else
-#define	TRACE(args...) {}
-#define	T_NUM(args...) {}
-#define	IF_TRACE	if (0)
-#endif
-
-#define	T_FS(args...)		T_NUM(TR_FS_LAYER, ##args)
-#define	T_PERF(args...)		T_NUM(TR_PERF, ##args)
-#define	T_DEBUG(args...)	T_NUM(TR_DEBUG, ##args)
-#define	T_LOCK(args...)		T_NUM(TR_LOCK, ##args)
-#define	T_NESTED(args...)	T_NUM(TR_NESTED, ##args)
-#define	T_TMP(args...)		T_NUM(TR_TMP, ##args)
-#define	T_O1(args...)		T_NUM(TR_O1, ##args)
-#define	T_PROJ(args...)		T_NUM(TR_PROJ, ##args)
-#define	T_SCCS(args...)		T_NUM(TR_SCCS, ##args)
-#define	T_INIT(args...)		T_NUM(TR_INIT, ##args)
-#define	T_CMD(args...) \
-	do { if (unlikely(bk_trace))					   \
-		trace_msg(__FILE__,__LINE__, __FUNCTION__, TR_CMD, ##args);\
-	} while (0)
-#define	T_SHIP(args...) \
-	do { if (unlikely(bk_trace))					    \
-		trace_msg(__FILE__,__LINE__, __FUNCTION__, TR_SHIP, ##args);\
-	} while (0)
-
 /* tty.c */
 #define	isatty		myisatty
 int	tty_init(void);
@@ -490,14 +328,7 @@ int	chomp(char *str);
 char	*eachline(char **linep, int *lenp);
 char	*eachstr(char **linep, int *lenp);
 
-/* webencode.c */
-void	webencode(FILE *out, u8 *ptr, int len);
-char	*webdecode(char *data, char **buf, int *sizep);
-
 /* which.c */
 char	*which(char *prog);
-
-
-#include "fslayer/fslayer.h"
 
 #endif /* _SYSTEM_H */
