@@ -16,6 +16,8 @@
 
 #include "hash.h"
 #include "u32hash.h"
+
+#include "utils/crc32c.h"
 #include "lines/data.h"
 
 typedef	struct {

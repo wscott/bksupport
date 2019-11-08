@@ -15,7 +15,11 @@
  */
 
 #include "hash.h"
+
+#include <time.h>
+
 #include "utils/webencode.h"
+#include "lines/lines.h"
 
 /*
  * Routines to save and restore a hash to and from a string.  To be

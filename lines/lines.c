@@ -18,13 +18,14 @@
  * Note: This file is also used by src/win32/pub/diffutils
  *       Do not put BitKeeper specific code here
  */
+#define _GNU_SOURCE
 #include "style.h"
 #include "lines.h"
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define	setLLEN(s, len)	(*(u32 *)(s) = (*(u32 *)(s) & ~LMASK) | (len))
 
@@ -467,7 +468,7 @@ lines2File(char **space, char *file)
 	int	rc = -1;
 
 	unless (file) return (-1);
-	asprintf(&tmp, "%s.tmp.%u", file, (int)getpid());
+	i = asprintf(&tmp, "%s.tmp.%u", file, (int)getpid());
 	unless (f = fopen(tmp, "w")) goto out;
 	EACH(space) fprintf(f, "%s\n", space[i]);
 	if (fclose(f) || (rc = rename(tmp, file))) unlink(tmp);
